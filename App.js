@@ -12,7 +12,6 @@ export default class App extends Component {
 
   componentWillMount() {
     this._requestLocationPermission();
-    this._getLocationAsync();
   }
 
   componentDidMount() {
@@ -22,24 +21,6 @@ export default class App extends Component {
   componentWillUnmount() {
     navigator.geolocation.clearWatch();
   }
-
-  _getLocationAsync = async () => {
-    await navigator.geolocation.getCurrentPosition(
-      location => {
-        this.setState({
-          location,
-        });
-      },
-      ({ message }) => {
-        this.setState({
-          errorMessage: message,
-        });
-      },
-      {
-        enableHighAccuracy: true,
-      }
-    );
-  };
 
   _requestLocationPermission = async () => {
     const { status } = await Permissions.askAsync(Permissions.LOCATION);
