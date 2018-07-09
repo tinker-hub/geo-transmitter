@@ -1,8 +1,11 @@
 import React, { Component } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Constants, Permissions } from 'expo';
+import { db } from './firebase';
+
 export default class App extends Component {
   state = {
+    trainId: 1,
     location: null,
     errorMessage: null,
   };
@@ -14,6 +17,10 @@ export default class App extends Component {
 
   componentDidMount() {
     this._updateLocation();
+  }
+
+  componentWillUnmount() {
+    navigator.geolocation.clearWatch();
   }
 
   _getLocationAsync = async () => {
@@ -41,7 +48,7 @@ export default class App extends Component {
         errorMessage: 'Permission to access location was denied',
       });
     }
-  }
+  };
 
   _updateLocation = () => {
     navigator.geolocation.watchPosition(
@@ -49,6 +56,8 @@ export default class App extends Component {
         this.setState({
           location,
         });
+
+        db.transmitLocation({ id: this.state.trainId, location: location });
       },
       ({ message }) => {
         this.setState({
@@ -59,7 +68,7 @@ export default class App extends Component {
         enableHighAccuracy: true,
       }
     );
-  }
+  };
 
   render() {
     let text = 'Waiting..';
