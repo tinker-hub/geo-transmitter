@@ -32,8 +32,6 @@ export default class App extends Component {
         enableHighAccuracy: true,
       }
     );
-    // const location = await Location.getCurrentPositionAsync({});
-    // this.setState({ location });
   };
 
   _requestLocationPermission = async () => {
