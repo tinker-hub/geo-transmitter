@@ -1,38 +1,28 @@
 import React, { Component } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Constants, Permissions } from 'expo';
+import SocketIOClient from 'socket.io-client';
 export default class App extends Component {
   state = {
     location: null,
     errorMessage: null,
   };
 
+  constructor(props) {
+    super(props);
+
+    const URL = 'http://e87d4a7f.ngrok.io/'
+
+    this.socket = SocketIOClient(URL);
+  }
+
   componentWillMount() {
     this._requestLocationPermission();
-    this._getLocationAsync();
   }
 
   componentDidMount() {
     this._updateLocation();
   }
-
-  _getLocationAsync = async () => {
-    await navigator.geolocation.getCurrentPosition(
-      location => {
-        this.setState({
-          location,
-        });
-      },
-      ({ message }) => {
-        this.setState({
-          errorMessage: message,
-        });
-      },
-      {
-        enableHighAccuracy: true,
-      }
-    );
-  };
 
   _requestLocationPermission = async () => {
     const { status } = await Permissions.askAsync(Permissions.LOCATION);
@@ -49,6 +39,8 @@ export default class App extends Component {
         this.setState({
           location,
         });
+
+        this.socket.emit('getTrainLocation', location);
       },
       ({ message }) => {
         this.setState({
