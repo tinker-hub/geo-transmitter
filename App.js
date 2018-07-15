@@ -1,19 +1,21 @@
 import React, { Component } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Picker, StyleSheet, Text, View } from 'react-native';
 import { Constants, Permissions } from 'expo';
 import SocketIOClient from 'socket.io-client';
 export default class App extends Component {
   state = {
     location: null,
     errorMessage: null,
+    trainId: 0,
+    trains: []
   };
 
   constructor(props) {
     super(props);
 
-    const URL = 'http://e87d4a7f.ngrok.io/'
+    this.URL = 'http://178.128.63.0:8081';
 
-    this.socket = SocketIOClient(URL);
+    this.socket = SocketIOClient(this.URL);
   }
 
   componentWillMount() {
@@ -22,34 +24,67 @@ export default class App extends Component {
 
   componentDidMount() {
     this._updateLocation();
+    this.getTrains();
   }
+
+  getTrains = async () => {
+    const response = await fetch(`${this.URL}/api/trains`);
+    const trains = await response.json();
+
+    this.setState({
+      trains: trains,
+      trainId: trains[0]._id
+    });
+  };
 
   _requestLocationPermission = async () => {
     const { status } = await Permissions.askAsync(Permissions.LOCATION);
     if (status !== 'granted') {
       this.setState({
-        errorMessage: 'Permission to access location was denied',
+        errorMessage: 'Permission to access location was denied'
       });
     }
-  }
+  };
 
   _updateLocation = () => {
     navigator.geolocation.watchPosition(
-      location => {
-        this.setState({
-          location,
-        });
+      ({ coords: { longitude, latitude, speed } }) => {
+        const { trainId } = this.state;
 
-        this.socket.emit('getTrainLocation', location);
+        const location = {
+          _id: trainId,
+          location: { coordinates: [longitude, latitude] },
+          speed: 7.5
+        };
+
+        this.setState(location);
+
+        this.socket.emit('train', location);
       },
       ({ message }) => {
         this.setState({
-          errorMessage: message,
+          errorMessage: message
         });
       },
       {
-        enableHighAccuracy: true,
+        enableHighAccuracy: true
       }
+    );
+  };
+
+  renderDropdown() {
+    const { trains, trainId } = this.state;
+
+    return (
+      <Picker
+        selectedValue={trainId}
+        style={{ height: 50, width: 100 }}
+        onValueChange={trainId => this.setState({ trainId })}
+      >
+        {trains.map(({ _id, name }) => (
+          <Picker.Item key={_id} label={name} value={_id} />
+        ))}
+      </Picker>
     );
   }
 
@@ -63,6 +98,7 @@ export default class App extends Component {
 
     return (
       <View style={styles.container}>
+        {this.renderDropdown()}
         <Text style={styles.paragraph}>{text}</Text>
       </View>
     );
@@ -75,11 +111,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: Constants.statusBarHeight,
-    backgroundColor: '#ecf0f1',
+    backgroundColor: '#ecf0f1'
   },
   paragraph: {
     margin: 24,
     fontSize: 18,
-    textAlign: 'center',
-  },
+    textAlign: 'center'
+  }
 });
