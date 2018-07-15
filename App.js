@@ -1,39 +1,57 @@
 import React, { Component } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
-import { Constants, Location, Permissions } from 'expo';
-
+import { StyleSheet, Text, View } from 'react-native';
+import { Constants, Permissions } from 'expo';
+import SocketIOClient from 'socket.io-client';
 export default class App extends Component {
   state = {
     location: null,
     errorMessage: null,
   };
 
+  constructor(props) {
+    super(props);
+
+    const URL = 'http://e87d4a7f.ngrok.io/'
+
+    this.socket = SocketIOClient(URL);
+  }
+
   componentWillMount() {
-    this._getLocationAsync();
+    this._requestLocationPermission();
   }
 
   componentDidMount() {
-    Location.watchPositionAsync(
-      {
-        enableHighAccuracy: true,
-      },
-      location => {
-        this.setState(location)
-      }
-    );
+    this._updateLocation();
   }
 
-  _getLocationAsync = async () => {
-    let { status } = await Permissions.askAsync(Permissions.LOCATION);
+  _requestLocationPermission = async () => {
+    const { status } = await Permissions.askAsync(Permissions.LOCATION);
     if (status !== 'granted') {
       this.setState({
         errorMessage: 'Permission to access location was denied',
       });
     }
+  }
 
-    let location = await Location.getCurrentPositionAsync({});
-    this.setState({ location });
-  };
+  _updateLocation = () => {
+    navigator.geolocation.watchPosition(
+      location => {
+        this.setState({
+          location,
+        });
+
+        this.socket.emit('getTrainLocation', location);
+      },
+      ({ message }) => {
+        this.setState({
+          errorMessage: message,
+        });
+      },
+      {
+        enableHighAccuracy: true,
+      }
+    );
+  }
 
   render() {
     let text = 'Waiting..';
